@@ -1,0 +1,46 @@
+logLevel: info
+logDestinations: [stdout]
+logStructured: false
+
+readTimeout: 10s
+writeTimeout: 10s
+writeQueueSize: 4096
+udpMaxPayloadSize: 1452
+
+authMethod: internal
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+        path: "__STREAM_PATH__"
+      - action: read
+        path: "__STREAM_PATH__"
+
+api: false
+metrics: false
+pprof: false
+playback: false
+
+rtsp: false
+rtmp: false
+hls: false
+webrtc: false
+
+srt: true
+srtAddress: :__SRT_PORT__
+
+pathDefaults:
+  source: publisher
+  overridePublisher: false
+  maxReaders: 2
+  record: false
+
+paths:
+  __STREAM_PATH__:
+    source: publisher
+    overridePublisher: false
+    maxReaders: 2
+    srtPublishPassphrase: "__SRT_PUBLISH_PASSPHRASE__"
+    srtReadPassphrase: "__SRT_READ_PASSPHRASE__"

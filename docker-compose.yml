@@ -1,0 +1,8 @@
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:1.18.2
+    container_name: tiktok-srt-relay
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro

@@ -1,0 +1,12 @@
+# secrets
+.env
+mediamtx.yml
+
+# third-party
+repos/
+moblin-src/
+moblin.zip
+
+# system
+.DS_Store
+Thumbs.db

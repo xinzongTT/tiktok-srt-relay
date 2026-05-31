@@ -43,18 +43,13 @@ flowchart LR
 - `scripts/test-read.sh`：本机拉流验证
 - `scripts/manage.py`：交互式管理多路推流（增删/查看连接信息/重启）
 
-## 安装
+## 一键安装
 
 ```bash
-cd /opt
-sudo mkdir -p tiktok-srt-relay
-sudo chown -R "$USER:$USER" tiktok-srt-relay
-cd /opt/tiktok-srt-relay
-
-# 放入本项目文件后执行：
-chmod +x scripts/*.sh
-sudo bash scripts/setup.sh
+curl -fsSL https://raw.githubusercontent.com/xinzongTT/tiktok-srt-relay/master/install.sh | sudo bash
 ```
+
+## 手动安装
 
 `setup.sh` 完成后会打印两条关键地址：
 

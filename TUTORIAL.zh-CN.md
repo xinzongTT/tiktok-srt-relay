@@ -91,34 +91,19 @@ mpegts
 
 ## 4. 服务器安装与部署
 
-### 4.1 在 VPS 上创建目录
+### 4.1 一键安装（推荐）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xinzongTT/tiktok-srt-relay/master/install.sh | sudo bash
+```
+
+### 4.2 手动安装
 
 ```bash
 cd /opt
-mkdir -p tiktok-srt-relay
+git clone https://github.com/xinzongTT/tiktok-srt-relay.git tiktok-srt-relay
 cd /opt/tiktok-srt-relay
-```
-
-把本项目文件放到该目录中，至少包括：
-
-- `docker-compose.yml`
-- `mediamtx.yml.template`
-- `.env.example`
-- `scripts/setup.sh`
-- `scripts/render-config.sh`
-- `scripts/status.sh`
-- `scripts/test-publish.sh`
-- `scripts/test-read.sh`
-
-### 4.2 给脚本执行权限
-
-```bash
 chmod +x scripts/*.sh
-```
-
-### 4.3 运行安装脚本
-
-```bash
 bash scripts/setup.sh
 ```
 
@@ -139,7 +124,7 @@ bash scripts/setup.sh
 - 放行 `8890/udp`
 - 启动 `MediaMTX`
 
-### 4.4 查看状态
+### 4.3 查看状态
 
 ```bash
 cd /opt/tiktok-srt-relay
@@ -157,7 +142,7 @@ SRT listener opened on :8890 (UDP)
 
 - `ss -lunp` 里有 `*:8890`
 
-### 4.5 服务器验收日志
+### 4.4 服务器验收日志
 
 手机推流成功后，正常日志应包含：
 

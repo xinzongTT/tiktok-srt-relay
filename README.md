@@ -8,7 +8,7 @@
 
 本项目不会实现 TikTok API，不会获取 TikTok stream key，也不会在 VPS 上运行桌面环境、OBS 或 LIVE Studio。
 
-如果你想直接按步骤操作，优先看 [TUTORIAL.zh-CN.md](/E:/tiktok%20live/TUTORIAL.zh-CN.md)。
+如果你想直接按步骤操作，优先看 [TUTORIAL.zh-CN.md](./TUTORIAL.zh-CN.md)。
 
 当前实测推荐客户端：
 
@@ -94,7 +94,7 @@ bash scripts/test-read.sh
 - 本次实测中，`Haivision Play Pro` 已验证可以稳定推送到 `MediaMTX`
 - `Moblin` 虽然能建立连接，但在当前环境下出现持续 `decode errors`
 
-手机推流参数详见 [TUTORIAL.zh-CN.md](/E:/tiktok%20live/TUTORIAL.zh-CN.md)。
+手机推流参数详见 [TUTORIAL.zh-CN.md](./TUTORIAL.zh-CN.md)。
 
 ## 美国 OBS 设置
 

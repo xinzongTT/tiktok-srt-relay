@@ -7,6 +7,20 @@ repos/
 moblin-src/
 moblin.zip
 
+# backups
+*.bak
+*.backup
+mediamtx.yml.bak
+
+# logs
+*.log
+logs/
+
+# editor
+.vscode/
+*.swp
+*~
+
 # system
 .DS_Store
 Thumbs.db

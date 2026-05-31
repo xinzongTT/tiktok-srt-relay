@@ -12,7 +12,8 @@ set -a
 source .env
 set +a
 
-for var in PUBLIC_HOST STREAM_PATH SRT_PORT SRT_LATENCY_US SRT_PUBLISH_PASSPHRASE SRT_READ_PASSPHRASE; do
+REQUIRED_VARS=(PUBLIC_HOST STREAM_PATH SRT_PORT SRT_PUBLISH_LATENCY SRT_READ_LATENCY SRT_PUBLISH_PASSPHRASE SRT_READ_PASSPHRASE)
+for var in "${REQUIRED_VARS[@]}"; do
   if [ -z "${!var:-}" ]; then
     echo "Missing env var: $var"
     exit 1
@@ -20,27 +21,25 @@ for var in PUBLIC_HOST STREAM_PATH SRT_PORT SRT_LATENCY_US SRT_PUBLISH_PASSPHRAS
 done
 
 python3 - <<'PY'
-import os
+import os, sys
 from pathlib import Path
+import shutil
 
-required = [
-    "STREAM_PATH",
-    "SRT_PORT",
-    "SRT_PUBLISH_PASSPHRASE",
-    "SRT_READ_PASSPHRASE",
-]
+template_file = Path("mediamtx.yml.template")
+output_file = Path("mediamtx.yml")
 
-for key in required:
-    value = os.environ.get(key, "")
-    if not value:
-        raise SystemExit(f"Missing {key}")
+if not template_file.exists():
+    sys.exit("Template mediamtx.yml.template not found.")
 
 for key in ["SRT_PUBLISH_PASSPHRASE", "SRT_READ_PASSPHRASE"]:
     value = os.environ[key]
     if not (20 <= len(value) <= 79):
-        raise SystemExit(f"{key} must be 20-79 characters for this project and SRT compatibility")
+        sys.exit(f"{key} must be 20-79 characters for SRT compatibility")
 
-template = Path("mediamtx.yml.template").read_text(encoding="utf-8")
+if output_file.exists():
+    shutil.copy2(output_file, "mediamtx.yml.bak")
+
+template = template_file.read_text(encoding="utf-8")
 
 replacements = {
     "__STREAM_PATH__": os.environ["STREAM_PATH"],
@@ -52,6 +51,6 @@ replacements = {
 for src, dst in replacements.items():
     template = template.replace(src, dst)
 
-Path("mediamtx.yml").write_text(template, encoding="utf-8")
+output_file.write_text(template, encoding="utf-8")
 print("Rendered mediamtx.yml")
 PY

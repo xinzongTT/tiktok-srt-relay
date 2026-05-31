@@ -9,12 +9,23 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+echo "[0/3] 检查依赖 ..."
+if ! command -v git >/dev/null 2>&1; then
+  echo "      安装 git ..."
+  apt-get update -qq
+  apt-get install -y -qq git
+fi
+
 echo "[1/3] 克隆仓库到 ${INSTALL_DIR} ..."
 if [ -d "$INSTALL_DIR" ]; then
-  echo "     目录已存在，跳过克隆。"
+  echo "      目录已存在，跳过克隆。"
 else
-  mkdir -p /opt
   git clone "$REPO_URL" "$INSTALL_DIR"
+fi
+
+if [ ! -d "$INSTALL_DIR" ]; then
+  echo "[!] 克隆失败，请检查网络和仓库地址。"
+  exit 1
 fi
 
 cd "$INSTALL_DIR"

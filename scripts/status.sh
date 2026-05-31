@@ -12,12 +12,16 @@ if [ -f .env ]; then
 fi
 
 echo "== docker ps =="
-docker ps --filter name=tiktok-srt-relay
+docker ps --filter name=tiktok-srt-relay 2>/dev/null || echo "(Docker may not be running)"
 
 echo
 echo "== recent MediaMTX logs =="
-docker logs --tail=100 tiktok-srt-relay || true
+docker logs --tail=100 tiktok-srt-relay 2>/dev/null || echo "(container not found or not running)"
+
+echo
+echo "== active stream status =="
+docker logs --tail=500 tiktok-srt-relay 2>/dev/null | grep -E "(is publishing|is reading|closed)" | tail -20 || echo "(no stream activity detected)"
 
 echo
 echo "== UDP listeners =="
-ss -lunp | grep ":${PORT}" || true
+ss -lunp 2>/dev/null | grep ":${PORT}" || echo "(port ${PORT} may not be listening, try: sudo bash scripts/status.sh)"

@@ -1,6 +1,6 @@
 services:
   mediamtx:
-    image: bluenviron/mediamtx:1.18.2
+    image: ${MEDIAMTX_IMAGE:-bluenviron/mediamtx:1.18.2}
     container_name: tiktok-srt-relay
     restart: unless-stopped
     network_mode: host

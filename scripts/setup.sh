@@ -38,7 +38,8 @@ if [ ! -f .env ]; then
 
   PUBLIC_IP="$(curl -4 --max-time 10 -s https://ifconfig.me || true)"
   if [ -z "$PUBLIC_IP" ]; then
-    PUBLIC_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+    # filter out Docker bridge, loopback, and link-local IPs
+    PUBLIC_IP="$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -vE '^172\.(1[6-9]|2[0-9]|3[0-1])\.|^10\.|^192\.168\.|^127\.|^169\.254\.' | head -1)"
   fi
   if [ -z "$PUBLIC_IP" ]; then
     PUBLIC_IP="YOUR_SERVER_PUBLIC_IP_OR_DOMAIN"
@@ -60,22 +61,23 @@ set +a
 
 $SUDO ufw allow 22/tcp
 $SUDO ufw allow "${SRT_PORT}/udp"
-$SUDO ufw --force enable
+if ! ufw status | grep -q "^Status: active"; then
+  $SUDO ufw --force enable
+fi
 
 if ! "${COMPOSE_CMD[@]}" up -d; then
-  echo "Primary MediaMTX image failed, falling back to bluenviron/mediamtx:latest"
-  sed -i 's|bluenviron/mediamtx:1.18.2|bluenviron/mediamtx:latest|' docker-compose.yml
-  "${COMPOSE_CMD[@]}" up -d
+  echo "Primary image failed, retrying with :latest (one-time, config unchanged)..."
+  MEDIAMTX_IMAGE="bluenviron/mediamtx:latest" "${COMPOSE_CMD[@]}" up -d
 fi
 
 echo
 echo "MediaMTX SRT relay is running."
 echo
 echo "Phone publish URL:"
-echo "srt://${PUBLIC_HOST}:${SRT_PORT}?streamid=publish:${STREAM_PATH}&pkt_size=1316&latency=${SRT_LATENCY_US}&passphrase=${SRT_PUBLISH_PASSPHRASE}&pbkeylen=16"
+echo "srt://${PUBLIC_HOST}:${SRT_PORT}?streamid=publish:${STREAM_PATH}&pkt_size=1316&latency=${SRT_PUBLISH_LATENCY:-500}&passphrase=${SRT_PUBLISH_PASSPHRASE}&pbkeylen=16"
 echo
 echo "OBS read URL:"
-echo "srt://${PUBLIC_HOST}:${SRT_PORT}?streamid=read:${STREAM_PATH}&latency=${SRT_LATENCY_US}&passphrase=${SRT_READ_PASSPHRASE}&pbkeylen=16"
+echo "srt://${PUBLIC_HOST}:${SRT_PORT}?streamid=read:${STREAM_PATH}&latency=${SRT_READ_LATENCY:-500000}&passphrase=${SRT_READ_PASSPHRASE}&pbkeylen=16"
 echo
 echo "OBS Media Source Input Format:"
 echo "mpegts"

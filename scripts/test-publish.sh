@@ -7,7 +7,7 @@ set -a
 source .env
 set +a
 
-URL="srt://127.0.0.1:${SRT_PORT}?streamid=publish:${STREAM_PATH}&pkt_size=1316&latency=${SRT_LATENCY_US}&passphrase=${SRT_PUBLISH_PASSPHRASE}&pbkeylen=16"
+URL="srt://127.0.0.1:${SRT_PORT}?streamid=publish:${STREAM_PATH}&pkt_size=1316&latency=${SRT_PUBLISH_LATENCY:-500}&passphrase=${SRT_PUBLISH_PASSPHRASE}&pbkeylen=16"
 
 echo "Publishing test stream to:"
 echo "$URL"

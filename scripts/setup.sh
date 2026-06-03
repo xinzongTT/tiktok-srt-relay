@@ -47,10 +47,14 @@ if [ ! -f .env ]; then
 
   PUB_PASS="$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 24)"
   READ_PASS="$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 24)"
+  MUSIC_PUB_PASS="$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 24)"
+  MUSIC_READ_PASS="$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 24)"
 
   sed -i "s/YOUR_SERVER_PUBLIC_IP_OR_DOMAIN/${PUBLIC_IP}/g" .env
   sed -i "s/CHANGE_ME_PUBLISH_123456/${PUB_PASS}/g" .env
   sed -i "s/CHANGE_ME_READ_123456/${READ_PASS}/g" .env
+  sed -i "s/CHANGE_ME_MUSIC_PUB_123456/${MUSIC_PUB_PASS}/g" .env
+  sed -i "s/CHANGE_ME_MUSIC_READ_123456/${MUSIC_READ_PASS}/g" .env
 fi
 
 bash scripts/render-config.sh
@@ -81,4 +85,13 @@ echo "srt://${PUBLIC_HOST}:${SRT_PORT}?streamid=read:${STREAM_PATH}&latency=${SR
 echo
 echo "OBS Media Source Input Format:"
 echo "mpegts"
+echo
+echo "========================================="
+echo "Music sync channel (US desktop -> China):"
+echo "-----------------------------------------"
+echo "US FFmpeg push command:"
+echo "ffmpeg -f dshow -i audio=\"YOUR_AUDIO_DEVICE\" -c:a libmp3lame -b:a 128k -f mpegts \"srt://${PUBLIC_HOST}:${SRT_PORT}?streamid=publish:${MUSIC_PATH}&pkt_size=1316&latency=${MUSIC_LATENCY:-500000}&passphrase=${MUSIC_PUBLISH_PASSPHRASE}&pbkeylen=16\""
+echo
+echo "China ffplay pull command:"
+echo "ffplay -i \"srt://${PUBLIC_HOST}:${SRT_PORT}?streamid=read:${MUSIC_PATH}&latency=${MUSIC_LATENCY:-500000}&passphrase=${MUSIC_READ_PASSPHRASE}&pbkeylen=16\""
 echo

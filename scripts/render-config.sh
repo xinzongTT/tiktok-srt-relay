@@ -12,7 +12,7 @@ set -a
 source .env
 set +a
 
-REQUIRED_VARS=(PUBLIC_HOST STREAM_PATH SRT_PORT SRT_PUBLISH_LATENCY SRT_READ_LATENCY SRT_PUBLISH_PASSPHRASE SRT_READ_PASSPHRASE)
+REQUIRED_VARS=(PUBLIC_HOST STREAM_PATH SRT_PORT SRT_PUBLISH_LATENCY SRT_READ_LATENCY SRT_PUBLISH_PASSPHRASE SRT_READ_PASSPHRASE MUSIC_PATH MUSIC_PUBLISH_PASSPHRASE MUSIC_READ_PASSPHRASE)
 for var in "${REQUIRED_VARS[@]}"; do
   if [ -z "${!var:-}" ]; then
     echo "Missing env var: $var"
@@ -31,7 +31,7 @@ output_file = Path("mediamtx.yml")
 if not template_file.exists():
     sys.exit("Template mediamtx.yml.template not found.")
 
-for key in ["SRT_PUBLISH_PASSPHRASE", "SRT_READ_PASSPHRASE"]:
+for key in ["SRT_PUBLISH_PASSPHRASE", "SRT_READ_PASSPHRASE", "MUSIC_PUBLISH_PASSPHRASE", "MUSIC_READ_PASSPHRASE"]:
     value = os.environ[key]
     if not (20 <= len(value) <= 79):
         sys.exit(f"{key} must be 20-79 characters for SRT compatibility")
@@ -46,6 +46,9 @@ replacements = {
     "__SRT_PORT__": os.environ["SRT_PORT"],
     "__SRT_PUBLISH_PASSPHRASE__": os.environ["SRT_PUBLISH_PASSPHRASE"],
     "__SRT_READ_PASSPHRASE__": os.environ["SRT_READ_PASSPHRASE"],
+    "__MUSIC_PATH__": os.environ["MUSIC_PATH"],
+    "__MUSIC_PUBLISH_PASSPHRASE__": os.environ["MUSIC_PUBLISH_PASSPHRASE"],
+    "__MUSIC_READ_PASSPHRASE__": os.environ["MUSIC_READ_PASSPHRASE"],
 }
 
 for src, dst in replacements.items():

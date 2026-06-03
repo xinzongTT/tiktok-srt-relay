@@ -156,7 +156,8 @@ python3 scripts/manage.py
 - `PUBLIC_HOST`：服务器公网 IP 或域名
 - `STREAM_PATH`：默认是 `phone`
 - `SRT_PORT`：默认是 `8890`
-- `SRT_LATENCY_US`：默认是 `2000000`
+- `SRT_PUBLISH_LATENCY`：默认是 `500`
+- `SRT_READ_LATENCY`：默认是 `500000`
 - `SRT_PUBLISH_PASSPHRASE`
 - `SRT_READ_PASSPHRASE`
 

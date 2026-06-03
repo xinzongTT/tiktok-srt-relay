@@ -47,11 +47,17 @@ echo "============================================"
 
 ALIAS_LINE="alias tkm='cd ${INSTALL_DIR} && bash scripts/manage.sh'"
 
+# Write a global executable so tkm works immediately, no login needed
+cat > /usr/local/bin/tkm <<'TKMSCRIPT'
+#!/bin/bash
+cd /opt/tiktok-srt-relay && bash scripts/manage.sh
+TKMSCRIPT
+chmod +x /usr/local/bin/tkm
+
+# Also add alias for non-root / future users
 if [ -f ~/.bashrc ]; then
   if ! grep -qF "alias tkm=" ~/.bashrc 2>/dev/null; then
     echo "$ALIAS_LINE" >> ~/.bashrc
-    echo "[+] 别名 'tkm' 已写入 ~/.bashrc，下次登录生效。"
-    echo "    立即启用: source ~/.bashrc"
   fi
 fi
 

@@ -86,6 +86,15 @@ echo
 echo "OBS Media Source Input Format:"
 echo "mpegts"
 echo
+
+# Install global tkm command
+cat > /usr/local/bin/tkm <<'TKMSCRIPT'
+#!/bin/bash
+cd /opt/tiktok-srt-relay && bash scripts/manage.sh
+TKMSCRIPT
+chmod +x /usr/local/bin/tkm
+
+echo "Quick manage: tkm"
 echo "========================================="
 echo "Music sync channel (US desktop -> China):"
 echo "-----------------------------------------"

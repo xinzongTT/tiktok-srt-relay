@@ -225,6 +225,26 @@ def update_scripts():
     except FileNotFoundError:
         print("未找到 git 命令。\n")
 
+def monitor_control(action):
+    import subprocess
+    script = BASE_DIR / "scripts" / "monitor-start.sh"
+    if not script.exists():
+        print("monitor-start.sh 不存在，请先 git pull 更新。\n")
+        return
+    env = load_env()
+    host = env.get("PUBLIC_HOST", "localhost")
+    if action == "start":
+        subprocess.run(["bash", str(script)], cwd=str(BASE_DIR))
+    elif action == "stop":
+        subprocess.run(["pkill", "-f", "python3.*monitor.py"], capture_output=True)
+        print("监控已停止。\n")
+    elif action == "status":
+        r = subprocess.run(["pgrep", "-f", "python3.*monitor.py"], capture_output=True, text=True)
+        if r.stdout.strip():
+            print(f"监控运行中 | http://{host}:9988\n")
+        else:
+            print("监控未运行。\n")
+
 def main():
     os.chdir(BASE_DIR)
 
@@ -244,9 +264,10 @@ def main():
             print("  3. 删除一路推流")
             print("  4. 重启中转服务")
             print("  5. 更新脚本 (git pull)")
-            print("  6. 退出")
+            print("  6. Web 监控 启动/停止/状态")
+            print("  7. 退出")
             print()
-            choice = input("  请选择 [1-6]: ").strip()
+            choice = input("  请选择 [1-7]: ").strip()
 
             if choice == "1":
                 list_streams(parsed, env)
@@ -306,6 +327,18 @@ def main():
                 update_scripts()
 
             elif choice == "6":
+                host = env.get("PUBLIC_HOST", "localhost")
+                print(f"\n  监控地址: http://{host}:9988")
+                print("  [s] 启动  [t] 停止  [v] 查看状态  [q] 返回")
+                subc = input("  > ").strip().lower()
+                if subc == "s":
+                    monitor_control("start")
+                elif subc == "t":
+                    monitor_control("stop")
+                elif subc == "v":
+                    monitor_control("status")
+
+            elif choice == "7":
                 print("  再见。")
                 break
 

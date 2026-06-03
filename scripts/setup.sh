@@ -65,6 +65,7 @@ set +a
 
 $SUDO ufw allow 22/tcp
 $SUDO ufw allow "${SRT_PORT}/udp"
+$SUDO ufw allow 9988/tcp
 if ! ufw status | grep -q "^Status: active"; then
   $SUDO ufw --force enable
 fi
@@ -73,6 +74,9 @@ if ! "${COMPOSE_CMD[@]}" up -d; then
   echo "Primary image failed, retrying with :latest (one-time, config unchanged)..."
   MEDIAMTX_IMAGE="bluenviron/mediamtx:latest" "${COMPOSE_CMD[@]}" up -d
 fi
+
+# Start stream monitor
+bash scripts/monitor-start.sh
 
 echo
 echo "MediaMTX SRT relay is running."

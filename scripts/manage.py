@@ -77,7 +77,7 @@ def parse_yml():
                     current_path_lines.append(line)
                 else:
                     result["header_lines"].append(line)
-            elif line and not line[0].isspace() and line.endswith(":"):
+            elif line and line.startswith("  ") and not line.startswith("    ") and line.endswith(":"):
                 if current_path:
                     result["paths"][current_path] = current_path_lines
                 current_path = stripped[:-1].strip()

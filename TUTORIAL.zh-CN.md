@@ -174,7 +174,7 @@ is reading from path 'phone'
   - 用 FFmpeg 本机推测试流
 - `scripts/test-read.sh`
   - 用 FFmpeg 本机读测试流
-- `scripts/manage.py`
+- `scripts/manage.sh`
   - 交互式多路推流管理（增删改查、查看连接信息、重启）
 
 ## 6. MediaMTX 配置要求
@@ -558,6 +558,19 @@ bash scripts/render-config.sh
 
 ```bash
 docker compose restart
+```
+
+推流管理（交互式）：
+
+```bash
+bash scripts/manage.sh
+```
+
+更快捷（设置别名）：
+
+```bash
+echo "alias tkm='cd /opt/tiktok-srt-relay && bash scripts/manage.sh'" >> ~/.bashrc
+source ~/.bashrc
 ```
 
 实时看日志：

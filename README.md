@@ -146,10 +146,17 @@ docker compose restart
 ## 多路推流管理
 
 ```bash
-python3 scripts/manage.py
+bash scripts/manage.sh
 ```
 
 交互式菜单：查看所有流、新增流（自动生成密码）、删除流、重启服务。
+
+更快捷：SSH 进服务器后加个别名，以后直接敲 `manage` 即可：
+
+```bash
+echo "alias manage='cd /opt/tiktok-srt-relay && bash scripts/manage.sh'" >> ~/.bashrc
+source ~/.bashrc
+```
 
 常见可调参数：
 

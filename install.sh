@@ -41,6 +41,22 @@ echo ""
 echo "============================================"
 echo "  安装完成！"
 echo ""
-echo "  多路推流管理: python3 scripts/manage.py"
+echo "  多路推流管理: tkm"
 echo "  查看状态:     bash scripts/status.sh"
 echo "============================================"
+
+ALIAS_LINE="alias tkm='cd ${INSTALL_DIR} && bash scripts/manage.sh'"
+
+if [ -f ~/.bashrc ]; then
+  if ! grep -qF "alias tkm=" ~/.bashrc 2>/dev/null; then
+    echo "$ALIAS_LINE" >> ~/.bashrc
+    echo "[+] 别名 'tkm' 已写入 ~/.bashrc，下次登录生效。"
+    echo "    立即启用: source ~/.bashrc"
+  fi
+fi
+
+if [ -f /etc/skel/.bashrc ]; then
+  if ! grep -qF "alias tkm=" /etc/skel/.bashrc 2>/dev/null; then
+    echo "$ALIAS_LINE" >> /etc/skel/.bashrc
+  fi
+fi

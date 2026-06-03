@@ -209,19 +209,21 @@ def restart_service():
 def update_scripts():
     import subprocess
     try:
+        r = subprocess.run(["git", "diff", "--quiet"], capture_output=True, cwd=str(BASE_DIR), timeout=10)
+        if r.returncode != 0:
+            subprocess.run(["git", "checkout", "--", "."], capture_output=True, cwd=str(BASE_DIR), timeout=10)
         result = subprocess.run(["git", "pull"], capture_output=True, text=True, cwd=str(BASE_DIR), timeout=30)
         if result.returncode == 0:
             if "Already up to date" in result.stdout or "Already up-to-date" in result.stdout:
                 print("已是最新版本。\n")
             else:
-                print("更新成功:\n" + result.stdout)
-                print("如需重启服务请选择 [4]。\n")
+                print("更新成功。\n")
         else:
-            print(f"更新失败:\n{result.stderr}\n")
+            print(f"更新失败，请手动 git pull:\n{result.stderr}\n")
     except subprocess.TimeoutExpired:
         print("更新超时，请检查网络。\n")
     except FileNotFoundError:
-        print("未找到 git 命令，请手动更新。\n")
+        print("未找到 git 命令。\n")
 
 def main():
     os.chdir(BASE_DIR)

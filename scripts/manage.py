@@ -206,6 +206,23 @@ def restart_service():
     except subprocess.TimeoutExpired:
         print("重启超时。\n")
 
+def update_scripts():
+    import subprocess
+    try:
+        result = subprocess.run(["git", "pull"], capture_output=True, text=True, cwd=str(BASE_DIR), timeout=30)
+        if result.returncode == 0:
+            if "Already up to date" in result.stdout or "Already up-to-date" in result.stdout:
+                print("已是最新版本。\n")
+            else:
+                print("更新成功:\n" + result.stdout)
+                print("如需重启服务请选择 [4]。\n")
+        else:
+            print(f"更新失败:\n{result.stderr}\n")
+    except subprocess.TimeoutExpired:
+        print("更新超时，请检查网络。\n")
+    except FileNotFoundError:
+        print("未找到 git 命令，请手动更新。\n")
+
 def main():
     os.chdir(BASE_DIR)
 
@@ -224,9 +241,10 @@ def main():
             print("  2. 新增一路推流")
             print("  3. 删除一路推流")
             print("  4. 重启中转服务")
-            print("  5. 退出")
+            print("  5. 更新脚本 (git pull)")
+            print("  6. 退出")
             print()
-            choice = input("  请选择 [1-5]: ").strip()
+            choice = input("  请选择 [1-6]: ").strip()
 
             if choice == "1":
                 list_streams(parsed, env)
@@ -283,6 +301,9 @@ def main():
                 restart_service()
 
             elif choice == "5":
+                update_scripts()
+
+            elif choice == "6":
                 print("  再见。")
                 break
 

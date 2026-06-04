@@ -37,9 +37,11 @@ fi
 import os, sys
 from pathlib import Path
 import shutil
+import importlib.util
 
 template_file = Path("mediamtx.yml.template")
 output_file = Path("mediamtx.yml")
+manage_file = Path("scripts/manage.py")
 
 if not template_file.exists():
     sys.exit("Template mediamtx.yml.template not found.")
@@ -49,6 +51,7 @@ for key in ["SRT_PUBLISH_PASSPHRASE", "SRT_READ_PASSPHRASE", "MUSIC_PUBLISH_PASS
     if not (20 <= len(value) <= 79):
         sys.exit(f"{key} must be 20-79 characters for SRT compatibility")
 
+existing = output_file.read_text(encoding="utf-8") if output_file.exists() else ""
 if output_file.exists():
     shutil.copy2(output_file, "mediamtx.yml.bak")
 
@@ -66,6 +69,13 @@ replacements = {
 
 for src, dst in replacements.items():
     template = template.replace(src, dst)
+
+if existing and manage_file.exists():
+    spec = importlib.util.spec_from_file_location("manage_config", manage_file)
+    manage = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(manage)
+    base_paths = {os.environ["STREAM_PATH"], os.environ["MUSIC_PATH"]}
+    template = manage.merge_extra_paths(template, existing, base_paths)
 
 output_file.write_text(template, encoding="utf-8")
 print("Rendered mediamtx.yml")

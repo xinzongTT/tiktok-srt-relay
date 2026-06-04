@@ -168,6 +168,49 @@ def sync_path_permission(path_name, add=True):
         updated = remove_permission_lines(lines, path_name)
     MEDIAMTX_FILE.write_text("\n".join(updated) + "\n", encoding="utf-8")
 
+def extract_path_blocks(config_text):
+    lines = config_text.splitlines()
+    paths = {}
+    in_paths = False
+    current_name = None
+    current_lines = []
+    for line in lines:
+        if not in_paths:
+            if line.strip() == "paths:":
+                in_paths = True
+            continue
+        stripped = line.strip()
+        if line.startswith("  ") and not line.startswith("    ") and stripped.endswith(":"):
+            if current_name:
+                paths[current_name] = current_lines
+            current_name = stripped[:-1].strip().strip('"')
+            current_lines = [line]
+        elif current_name:
+            current_lines.append(line)
+    if current_name:
+        paths[current_name] = current_lines
+    return paths
+
+def merge_extra_paths(rendered_text, existing_text, base_paths):
+    existing_paths = extract_path_blocks(existing_text)
+    extra_paths = {
+        name: lines
+        for name, lines in existing_paths.items()
+        if name not in base_paths and not name.startswith("__")
+    }
+    if not extra_paths:
+        return rendered_text
+
+    merged = rendered_text.rstrip() + "\n"
+    for name, lines in extra_paths.items():
+        if f"  {name}:" not in merged:
+            merged += "\n" + "\n".join(lines).rstrip() + "\n"
+
+    merged_lines = merged.splitlines()
+    for name in extra_paths:
+        merged_lines = ensure_permission_lines(merged_lines, name)
+    return "\n".join(merged_lines) + "\n"
+
 def add_stream(path_name, parsed, env):
     if path_name in parsed["paths"]:
         return False, f"流 '{path_name}' 已存在。"

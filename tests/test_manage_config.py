@@ -1,4 +1,5 @@
 import importlib.util
+import os
 import shutil
 import tempfile
 import unittest
@@ -87,6 +88,35 @@ class ManageConfigTests(unittest.TestCase):
         self.assertNotIn("monitor-start.sh", source)
         self.assertNotIn("ufw allow 9988/tcp", source)
         self.assertIn("/usr/local/bin/tkm", source)
+
+    def test_render_config_preserves_extra_streams(self):
+        parsed = self.manage.parse_yml()
+        ok, result = self.manage.add_stream("zs1", parsed, self.manage.load_env())
+        self.assertTrue(ok, result)
+
+        template = (self.base / "mediamtx.yml.template").read_text(encoding="utf-8")
+        env = self.manage.load_env()
+        for src, dst in {
+            "__STREAM_PATH__": env["STREAM_PATH"],
+            "__SRT_PORT__": env["SRT_PORT"],
+            "__SRT_PUBLISH_PASSPHRASE__": env["SRT_PUBLISH_PASSPHRASE"],
+            "__SRT_READ_PASSPHRASE__": env["SRT_READ_PASSPHRASE"],
+            "__MUSIC_PATH__": env["MUSIC_PATH"],
+            "__MUSIC_PUBLISH_PASSPHRASE__": env["MUSIC_PUBLISH_PASSPHRASE"],
+            "__MUSIC_READ_PASSPHRASE__": env["MUSIC_READ_PASSPHRASE"],
+        }.items():
+            template = template.replace(src, dst)
+
+        # Match render-config behavior: a rendered template should be merged
+        # with extra tkm-managed paths from the existing mediamtx.yml.
+        merged = self.manage.merge_extra_paths(
+            template,
+            (self.base / "mediamtx.yml").read_text(encoding="utf-8"),
+            {env["STREAM_PATH"], env["MUSIC_PATH"]},
+        )
+
+        self.assertIn("  zs1:", merged)
+        self.assertIn("path: zs1", merged)
 
 
 if __name__ == "__main__":

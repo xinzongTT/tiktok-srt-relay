@@ -42,24 +42,55 @@ HTML = """<!DOCTYPE html>
   .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
   .dot.live { background: #4ade80; box-shadow: 0 0 6px #4ade80; animation: pulse 1.5s infinite; }
   .dot.dead { background: #555; }
+  .dot.warn { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; animation: pulse 0.8s infinite; }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 </style>
 </head>
 <body>
 <div class="header">
   <h1>TikTok SRT 推流监控</h1>
-  <div class="info" id="info">加载中...</div>
+  <div class="info" id="info">
+    <span class="dot dead" id="hb-dot" style="width:6px;height:6px;vertical-align:middle;margin-right:4px;"></span>
+    <span id="hb-text">加载中...</span>
+  </div>
 </div>
 <div class="grid" id="grid"></div>
 <div class="footer">TikTok SRT Relay Monitor</div>
 <script>
 const API = '/api/status';
+let lastSuccess = 0;
+let failCount = 0;
+
+function updateHeartbeat(ok) {
+  const dot = document.getElementById('hb-dot');
+  const txt = document.getElementById('hb-text');
+  if (ok) {
+    dot.className = 'dot live';
+    failCount = 0;
+    lastSuccess = Date.now();
+    txt.style.color = '#4ade80';
+  } else {
+    failCount++;
+    dot.className = failCount > 3 ? 'dot dead' : 'dot warn';
+    txt.style.color = failCount > 3 ? '#f87171' : '#f59e0b';
+  }
+}
+
+setInterval(() => {
+  const sec = Math.floor((Date.now() - lastSuccess) / 1000);
+  if (lastSuccess && sec > 5) {
+    document.getElementById('hb-text').textContent = '断开连接';
+    document.getElementById('hb-dot').className = 'dot dead';
+  }
+}, 1000);
+
 async function refresh() {
   try {
     const r = await fetch(API);
     const data = await r.json();
-    document.getElementById('info').textContent =
-      `服务器: ${data.host}:${data.port} | 更新时间: ${data.time}`;
+    updateHeartbeat(true);
+    document.getElementById('hb-text').textContent =
+      `服务器: ${data.host}:${data.port} | 最后更新: ${data.time}`;
     const grid = document.getElementById('grid');
     grid.innerHTML = data.streams.map(s => `
       <div class="card">
@@ -87,7 +118,8 @@ async function refresh() {
       </div>
     `).join('');
   } catch(e) {
-    document.getElementById('info').textContent = '连接服务器失败...';
+    updateHeartbeat(false);
+    document.getElementById('grid').innerHTML = '';
   }
 }
 refresh();
@@ -111,25 +143,34 @@ def get_configured_streams():
     """Get stream names from mediamtx.yml"""
     yml = BASE_DIR / "mediamtx.yml"
     if not yml.exists():
+        # Try template for demo
+        yml = BASE_DIR / "mediamtx.yml.template"
+    if not yml.exists():
         return []
     text = yml.read_text()
     streams = []
     for line in text.splitlines():
         if line.startswith("  ") and not line.startswith("    ") and line.endswith(":"):
             name = line.strip()[:-1]
-            if name:
+            # skip template placeholders
+            if name and not name.startswith("__"):
                 streams.append(name)
     return streams
 
 def get_stream_status():
     """Parse docker logs to determine active streams."""
+    logs = ""
+    docker_ok = False
     try:
-        logs = subprocess.run(
+        r = subprocess.run(
             ["docker", "logs", "--tail=500", "tiktok-srt-relay"],
             capture_output=True, text=True, timeout=10
-        ).stdout.strip()
+        )
+        if r.returncode == 0:
+            logs = r.stdout.strip()
+            docker_ok = True
     except Exception:
-        logs = ""
+        pass
 
     paths = get_configured_streams()
     env = load_env()

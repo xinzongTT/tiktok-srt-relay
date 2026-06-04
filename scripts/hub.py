@@ -12,8 +12,13 @@ from datetime import datetime
 BASE_DIR = Path(__file__).resolve().parent.parent
 PORT = 9988
 
-# In-memory store: { server_name: { host, port, streams, last_seen, status_data } }
+# In-memory store: { server_name: { host, port, streams, last_seen } }
 SERVERS = {}
+# Custom display names: { raw_name: display_name }
+NICKNAMES = {}
+
+def get_display(name):
+    return NICKNAMES.get(name, name)
 
 HTML = """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -35,7 +40,8 @@ HTML = """<!DOCTYPE html>
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
   .server-block{margin-bottom:24px}
   .server-header{display:flex;align-items:center;gap:10px;padding:8px 0}
-  .server-header h2{font-size:15px;color:#aaa}
+  .server-header h2{font-size:15px;color:#aaa;cursor:pointer}
+  .server-header h2:hover{color:#fff;text-decoration:underline}
   .server-header .sd{width:10px;height:10px;border-radius:50%}
   .server-header .sd.ok{background:#4ade80}.server-header .sd.err{background:#f87171}
   .server-header .urls{font-size:11px;color:#555;margin-left:auto}
@@ -76,17 +82,19 @@ setInterval(async()=>{
     const r=await fetch('/api/status');
     const data=await r.json();
     const servers=data.servers||{};
+    const nicknames=data.nicknames||{};
     let total=0,active=0;
     let allOk=true,anyOk=false;
     let html='';
 
     for(const[name,svr]of Object.entries(servers)){
+      const display= nicknames[name] || name;
       const alive=(Date.now()/1000-svr.last_seen)<20;
       if(alive)anyOk=true;else allOk=false;
       html+=`<div class="server-block">`;
       html+=`<div class="server-header">`;
       html+=`<span class="sd ${alive?'ok':'err'}"></span>`;
-      html+=`<h2>${name}</h2>`;
+      html+=`<h2 onclick="renameServer('${name}','${display}')" title="点击修改名称">${display}</h2>`;
       html+=`<span class="urls">${svr.host}:${svr.port} | ${alive?'在线':'超时'}</span>`;
       html+=`</div>`;
       if(alive&&svr.streams&&svr.streams.length){
@@ -120,6 +128,17 @@ setInterval(async()=>{
     hb.className='dot '+(allOk&&anyOk?'green':anyOk?'yellow':'red');
   }catch(e){}
 },3000);
+
+async function renameServer(name, current){
+  const nn=prompt('修改服务器名称:',current);
+  if(nn && nn!==current){
+    await fetch('/api/rename',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name,display:nn})
+    });
+  }
+}
 </script>
 </body>
 </html>"""
@@ -128,15 +147,25 @@ class HubHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/api/status":
-            self._json({ "servers": SERVERS, "time": datetime.now().strftime("%H:%M:%S") })
+            # Clean expired servers (>60s no report)
+            now = time.time()
+            expired = [k for k, v in SERVERS.items() if now - v["last_seen"] > 120]
+            for k in expired:
+                del SERVERS[k]
+            self._json({
+                "servers": SERVERS,
+                "nicknames": NICKNAMES,
+                "time": datetime.now().strftime("%H:%M:%S")
+            })
         else:
             self._html(HTML)
 
     def do_POST(self):
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length) if length > 0 else b"{}"
+
         if self.path == "/api/report":
             try:
-                length = int(self.headers.get("Content-Length", 0))
-                body = self.rfile.read(length)
                 report = json.loads(body)
                 name = report.get("name", "unknown")
                 SERVERS[name] = {
@@ -145,13 +174,21 @@ class HubHandler(http.server.BaseHTTPRequestHandler):
                     "streams": report.get("streams", []),
                     "last_seen": time.time(),
                 }
-                self.send_response(200)
-                self.end_headers()
-                self.wfile.write(b"ok")
+                self._ok()
             except Exception as e:
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(str(e).encode())
+                self._err(str(e))
+
+        elif self.path == "/api/rename":
+            try:
+                data = json.loads(body)
+                name = data.get("name")
+                display = data.get("display", "").strip()
+                if name and display:
+                    NICKNAMES[name] = display
+                self._ok()
+            except Exception as e:
+                self._err(str(e))
+
         else:
             self.send_response(404)
             self.end_headers()
@@ -170,6 +207,25 @@ class HubHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         self.wfile.write(content.encode())
+
+    def _ok(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(b"ok")
+
+    def _err(self, msg):
+        self.send_response(400)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(msg.encode())
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
 
     def log_message(self, format, *args):
         pass

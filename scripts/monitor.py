@@ -222,10 +222,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     "time": datetime.now().strftime("%H:%M:%S"),
                     "streams": streams
                 }
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Cache-Control", "no-cache")
-                self.end_headers()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
                 self.wfile.write(json.dumps(data, ensure_ascii=False).encode())
             except Exception as e:
                 self.send_response(500)

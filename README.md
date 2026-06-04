@@ -241,14 +241,27 @@ bash scripts/music-play-cn.sh          # 中国端播放
 
 Hub 页面不在本仓库内运行；本仓库只提供 VPS 侧 reporter。
 
-在 VPS 上启动本项目内置 reporter：
+在 VPS 上一键安装 reporter，并自动创建 systemd 服务 `tiktok-srt-reporter`：
 
 ```bash
-cd /opt/tiktok-srt-relay
-HUB=http://23.238.118.221:9988/api/report REPORTER_NAME=relay-1 nohup bash scripts/reporter-start.sh > reporter.log 2>&1 &
+curl -fsSL https://raw.githubusercontent.com/xinzongTT/tiktok-srt-relay/master/install-monitor.sh | sudo bash
 ```
 
-`reporter-start.sh` 会读取 `.env` 中的 `PUBLIC_HOST` 和 `SRT_PORT`，默认访问本机 MediaMTX API：`http://127.0.0.1:9997/v3/paths/list`。
+默认上报到 `http://23.238.118.221:9988/api/report`。如果中控台已经通过域名反代，运行时传入反代后的 API 地址：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xinzongTT/tiktok-srt-relay/master/install-monitor.sh -o /tmp/install-monitor.sh
+HUB=https://你的域名/api/report NAME=relay-1 sudo -E bash /tmp/install-monitor.sh
+```
+
+脚本会读取 `.env` 中的 `PUBLIC_HOST` 和 `SRT_PORT`，默认访问本机 MediaMTX API：`http://127.0.0.1:9997/v3/paths/list`。如果 MediaMTX API 认证不同，可传入 `MTX_AUTH=user:pass`。
+
+查看 reporter 状态：
+
+```bash
+systemctl status tiktok-srt-reporter --no-pager
+journalctl -u tiktok-srt-reporter -f
+```
 
 新增推流线路时请使用 `tkm` 或 `bash scripts/manage.sh`，脚本会同时写入 `paths` 和 `authInternalUsers.permissions`，避免新线路认证失败。
 
@@ -257,6 +270,7 @@ HUB=http://23.238.118.221:9988/api/report REPORTER_NAME=relay-1 nohup bash scrip
 ```
 ├── docker-compose.yml          # Docker 编排
 ├── install.sh                  # 一键安装脚本
+├── install-monitor.sh          # 一键接入中控台 reporter
 ├── mediamtx.yml.template       # MediaMTX 配置模板
 ├── .env.example                # 环境变量模板
 ├── .env                        # 实际配置（gitignore）

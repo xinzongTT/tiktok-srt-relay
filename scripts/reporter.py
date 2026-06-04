@@ -23,12 +23,15 @@ def fetch_json(url, auth=None, timeout=5):
         return json.loads(resp.read())
 
 
-def post_json(url, payload, timeout=5):
+def post_json(url, payload, token="", timeout=5):
     data = json.dumps(payload, ensure_ascii=False).encode()
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["X-Report-Token"] = token
     req = urllib.request.Request(
         url,
         data=data,
-        headers={"Content-Type": "application/json"},
+        headers=headers,
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -98,6 +101,7 @@ def main():
     name = os.environ.get("NAME", socket.gethostname())
     host = os.environ.get("SRT_HOST", os.environ.get("PUBLIC_HOST", "?"))
     port = os.environ.get("SRT_PORT", "8890")
+    report_token = os.environ.get("REPORT_TOKEN", "")
     interval = int(os.environ.get("REPORT_INTERVAL", "5"))
     state = {"last_readers": {}, "reconnects": {}, "last_frames_error": {}}
 
@@ -111,7 +115,7 @@ def main():
 
         report = build_report(api_payload, name, host, port, state)
         try:
-            post_json(hub, report)
+            post_json(hub, report, token=report_token)
         except Exception as exc:
             print(f"[reporter] Hub post error: {exc}", flush=True)
 

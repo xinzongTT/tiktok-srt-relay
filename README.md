@@ -251,10 +251,11 @@ curl -fsSL https://raw.githubusercontent.com/xinzongTT/tiktok-srt-relay/master/i
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/xinzongTT/tiktok-srt-relay/master/install-monitor.sh -o /tmp/install-monitor.sh
-HUB=https://你的域名/api/report NAME=relay-1 sudo -E bash /tmp/install-monitor.sh
+HUB=https://你的域名/api/report NAME=relay-1 REPORT_TOKEN="同一个中控密钥" sudo -E bash /tmp/install-monitor.sh
 ```
 
 脚本会读取 `.env` 中的 `PUBLIC_HOST` 和 `SRT_PORT`，默认访问本机 MediaMTX API：`http://127.0.0.1:9997/v3/paths/list`。如果 MediaMTX API 认证不同，可传入 `MTX_AUTH=user:pass`。
+如果中控台没有配置 `REPORT_TOKEN`，VPS 侧也可以不传；一旦中控台配置了 `REPORT_TOKEN`，每台 VPS reporter 必须传同一个值。
 
 查看 reporter 状态：
 

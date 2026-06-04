@@ -45,6 +45,12 @@ class ReporterTests(unittest.TestCase):
         self.assertEqual(streams[1]["readers"], 0)
         self.assertEqual(streams[1]["last_event"], "idle")
 
+    def test_reporter_can_send_report_token(self):
+        source = (ROOT / "scripts" / "reporter.py").read_text(encoding="utf-8")
+
+        self.assertIn('os.environ.get("REPORT_TOKEN"', source)
+        self.assertIn('"X-Report-Token"', source)
+
 
 if __name__ == "__main__":
     unittest.main()

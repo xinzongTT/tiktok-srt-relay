@@ -16,5 +16,6 @@ export NAME="${NAME:-${REPORTER_NAME:-$(hostname)}}"
 export SRT_HOST="${SRT_HOST:-${PUBLIC_HOST:-?}}"
 export SRT_PORT="${SRT_PORT:-8890}"
 export REPORT_INTERVAL="${REPORT_INTERVAL:-5}"
+export REPORT_TOKEN="${REPORT_TOKEN:-}"
 
 exec python3 scripts/reporter.py

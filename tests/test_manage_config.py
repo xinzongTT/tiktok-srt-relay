@@ -89,6 +89,14 @@ class ManageConfigTests(unittest.TestCase):
         self.assertNotIn("ufw allow 9988/tcp", source)
         self.assertIn("/usr/local/bin/tkm", source)
 
+    def test_update_scripts_preserves_local_changes(self):
+        source = (ROOT / "scripts" / "manage.py").read_text(encoding="utf-8")
+
+        self.assertNotIn('"checkout", "--"', source)
+        self.assertNotIn("git checkout", source)
+        self.assertIn('"stash", "push"', source)
+        self.assertIn('"--ff-only"', source)
+
     def test_render_config_preserves_extra_streams(self):
         parsed = self.manage.parse_yml()
         ok, result = self.manage.add_stream("zs1", parsed, self.manage.load_env())

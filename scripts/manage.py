@@ -313,15 +313,40 @@ def restart_service():
 def update_scripts():
     import subprocess
     try:
-        r = subprocess.run(["git", "diff", "--quiet"], capture_output=True, cwd=str(BASE_DIR), timeout=10)
-        if r.returncode != 0:
-            subprocess.run(["git", "checkout", "--", "."], capture_output=True, cwd=str(BASE_DIR), timeout=10)
-        result = subprocess.run(["git", "pull"], capture_output=True, text=True, cwd=str(BASE_DIR), timeout=30)
+        dirty_worktree = subprocess.run(
+            ["git", "diff", "--quiet"],
+            capture_output=True,
+            cwd=str(BASE_DIR),
+            timeout=10,
+        ).returncode != 0
+        dirty_index = subprocess.run(
+            ["git", "diff", "--cached", "--quiet"],
+            capture_output=True,
+            cwd=str(BASE_DIR),
+            timeout=10,
+        ).returncode != 0
+        stashed = False
+        if dirty_worktree or dirty_index:
+            stash = subprocess.run(
+                ["git", "stash", "push", "-m", "tkm-auto-stash-before-update", "--", "."],
+                capture_output=True,
+                text=True,
+                cwd=str(BASE_DIR),
+                timeout=20,
+            )
+            if stash.returncode != 0:
+                print(f"保存本地改动失败，请手动处理后再更新:\n{stash.stderr}\n")
+                return
+            stashed = True
+
+        result = subprocess.run(["git", "pull", "--ff-only"], capture_output=True, text=True, cwd=str(BASE_DIR), timeout=30)
         if result.returncode == 0:
             if "Already up to date" in result.stdout or "Already up-to-date" in result.stdout:
                 print("已是最新版本。\n")
             else:
                 print("更新成功。\n")
+            if stashed:
+                print("本地脚本改动已保存到 git stash，可用 git stash list 查看。\n")
         else:
             print(f"更新失败，请手动 git pull:\n{result.stderr}\n")
     except subprocess.TimeoutExpired:

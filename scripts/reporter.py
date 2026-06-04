@@ -6,7 +6,6 @@ import json
 import os
 import socket
 import time
-import urllib.error
 import urllib.request
 
 

@@ -1,5 +1,9 @@
 # TikTok SRT Relay
 
+版本：`1.0.0`
+
+本仓库是 VPS 侧 SRT 中转服务：负责 MediaMTX 配置、多路推流管理、以及向中控台上报状态。中控台 Hub 页面和多机看板已拆分到独立项目 `tiktok-srt-monitor`。
+
 一个只负责 `SRT` 中转的轻量 VPS 方案：
 
 - 中国手机端使用 `Haivision Play Pro` 推 `SRT` 到 Ubuntu VPS
@@ -234,6 +238,8 @@ bash scripts/music-play-cn.sh          # 中国端播放
 ## 接入中控台
 
 [中控台项目](https://github.com/xinzongTT/tiktok-live-jiankong) 可统一监控多个推流服务器。
+
+Hub 页面不在本仓库内运行；本仓库只提供 VPS 侧 reporter。
 
 在 VPS 上启动本项目内置 reporter：
 

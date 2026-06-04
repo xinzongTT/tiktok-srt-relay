@@ -286,25 +286,25 @@ def update_scripts():
     except FileNotFoundError:
         print("未找到 git 命令。\n")
 
-def monitor_control(action):
+def reporter_control(action):
     import subprocess
-    script = BASE_DIR / "scripts" / "monitor-start.sh"
+    script = BASE_DIR / "scripts" / "reporter-start.sh"
     if not script.exists():
-        print("monitor-start.sh 不存在，请先 git pull 更新。\n")
+        print("reporter-start.sh 不存在，请先 git pull 更新。\n")
         return
-    env = load_env()
-    host = env.get("PUBLIC_HOST", "localhost")
     if action == "start":
-        subprocess.run(["bash", str(script)], cwd=str(BASE_DIR))
+        cmd = "nohup bash scripts/reporter-start.sh > reporter.log 2>&1 &"
+        subprocess.run(["bash", "-lc", cmd], cwd=str(BASE_DIR))
+        print("reporter 已启动。\n")
     elif action == "stop":
-        subprocess.run(["pkill", "-f", "python3.*monitor.py"], capture_output=True)
-        print("监控已停止。\n")
+        subprocess.run(["pkill", "-f", "scripts/reporter.py"], capture_output=True)
+        print("reporter 已停止。\n")
     elif action == "status":
-        r = subprocess.run(["pgrep", "-f", "python3.*monitor.py"], capture_output=True, text=True)
+        r = subprocess.run(["pgrep", "-af", "scripts/reporter.py"], capture_output=True, text=True)
         if r.stdout.strip():
-            print(f"监控运行中 | http://{host}:9988\n")
+            print(f"reporter 运行中:\n{r.stdout}\n")
         else:
-            print("监控未运行。\n")
+            print("reporter 未运行。\n")
 
 def main():
     os.chdir(BASE_DIR)
@@ -325,7 +325,7 @@ def main():
             print("  3. 删除一路推流")
             print("  4. 重启中转服务")
             print("  5. 更新脚本 (git pull)")
-            print("  6. Web 监控 启动/停止/状态")
+            print("  6. 中控台 reporter 启动/停止/状态")
             print("  7. 退出")
             print()
             choice = input("  请选择 [1-7]: ").strip()
@@ -388,16 +388,15 @@ def main():
                 update_scripts()
 
             elif choice == "6":
-                host = env.get("PUBLIC_HOST", "localhost")
-                print(f"\n  监控地址: http://{host}:9988")
+                print("\n  中控台 reporter")
                 print("  [s] 启动  [t] 停止  [v] 查看状态  [q] 返回")
                 subc = input("  > ").strip().lower()
                 if subc == "s":
-                    monitor_control("start")
+                    reporter_control("start")
                 elif subc == "t":
-                    monitor_control("stop")
+                    reporter_control("stop")
                 elif subc == "v":
-                    monitor_control("status")
+                    reporter_control("status")
 
             elif choice == "7":
                 print("  再见。")

@@ -65,7 +65,6 @@ set +a
 
 $SUDO ufw allow 22/tcp
 $SUDO ufw allow "${SRT_PORT}/udp"
-$SUDO ufw allow 9988/tcp
 if ! ufw status | grep -q "^Status: active"; then
   $SUDO ufw --force enable
 fi
@@ -75,8 +74,11 @@ if ! "${COMPOSE_CMD[@]}" up -d; then
   MEDIAMTX_IMAGE="bluenviron/mediamtx:latest" "${COMPOSE_CMD[@]}" up -d
 fi
 
-# Start stream monitor
-bash scripts/monitor-start.sh
+# Install global tkm command
+$SUDO install -m 755 /dev/stdin /usr/local/bin/tkm <<'TKMSCRIPT'
+#!/bin/bash
+cd /opt/tiktok-srt-relay && bash scripts/manage.sh
+TKMSCRIPT
 
 echo
 echo "MediaMTX SRT relay is running."
@@ -90,14 +92,6 @@ echo
 echo "OBS Media Source Input Format:"
 echo "mpegts"
 echo
-
-# Install global tkm command
-cat > /usr/local/bin/tkm <<'TKMSCRIPT'
-#!/bin/bash
-cd /opt/tiktok-srt-relay && bash scripts/manage.sh
-TKMSCRIPT
-chmod +x /usr/local/bin/tkm
-
 echo "Quick manage: tkm"
 echo "========================================="
 echo "Music sync channel (US desktop -> China):"

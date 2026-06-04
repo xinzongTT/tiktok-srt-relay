@@ -72,6 +72,22 @@ class ManageConfigTests(unittest.TestCase):
         self.assertNotIn("  zs1:", text)
         self.assertNotIn("path: zs1", text)
 
+    def test_manage_menu_uses_reporter_not_old_monitor(self):
+        source = (ROOT / "scripts" / "manage.py").read_text(encoding="utf-8")
+
+        self.assertIn("reporter_control", source)
+        self.assertIn("reporter-start.sh", source)
+        self.assertNotIn("monitor-start.sh", source)
+        self.assertNotIn("python3.*monitor.py", source)
+        self.assertNotIn("Web 监控", source)
+
+    def test_setup_no_longer_starts_old_monitor(self):
+        source = (ROOT / "scripts" / "setup.sh").read_text(encoding="utf-8")
+
+        self.assertNotIn("monitor-start.sh", source)
+        self.assertNotIn("ufw allow 9988/tcp", source)
+        self.assertIn("/usr/local/bin/tkm", source)
+
 
 if __name__ == "__main__":
     unittest.main()

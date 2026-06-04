@@ -20,7 +20,20 @@ for var in "${REQUIRED_VARS[@]}"; do
   fi
 done
 
-python3 - <<'PY'
+PYTHON_BIN=""
+for candidate in python3 python; do
+  if command -v "$candidate" >/dev/null 2>&1 && "$candidate" --version >/dev/null 2>&1; then
+    PYTHON_BIN="$candidate"
+    break
+  fi
+done
+
+if [ -z "$PYTHON_BIN" ]; then
+  echo "Python 3 not found."
+  exit 1
+fi
+
+"$PYTHON_BIN" - <<'PY'
 import os, sys
 from pathlib import Path
 import shutil

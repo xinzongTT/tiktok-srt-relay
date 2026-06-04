@@ -51,6 +51,7 @@ NAME="${NAME:-${REPORTER_NAME:-$(hostname)}}"
 SRT_HOST="${SRT_HOST:-${PUBLIC_HOST:-$(curl -fsS --max-time 5 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')}}"
 SRT_PORT="${SRT_PORT:-8890}"
 REPORT_INTERVAL="${REPORT_INTERVAL:-5}"
+REPORT_TOKEN="${REPORT_TOKEN:-}"
 
 echo "[2/5] 写入 reporter 配置 ..."
 cat > "$ENV_FILE" <<EOF
@@ -61,6 +62,7 @@ NAME=$NAME
 SRT_HOST=$SRT_HOST
 SRT_PORT=$SRT_PORT
 REPORT_INTERVAL=$REPORT_INTERVAL
+REPORT_TOKEN=$REPORT_TOKEN
 EOF
 chmod 600 "$ENV_FILE"
 
@@ -98,5 +100,10 @@ echo "  MTX_API=$MTX_API"
 echo "  NAME=$NAME"
 echo "  SRT_HOST=$SRT_HOST"
 echo "  SRT_PORT=$SRT_PORT"
+if [ -n "$REPORT_TOKEN" ]; then
+  echo "  REPORT_TOKEN=已设置"
+else
+  echo "  REPORT_TOKEN=未设置"
+fi
 echo ""
 echo "查看日志：journalctl -u tiktok-srt-reporter -f"

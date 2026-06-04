@@ -77,7 +77,13 @@ class ManageConfigTests(unittest.TestCase):
         source = (ROOT / "scripts" / "manage.py").read_text(encoding="utf-8")
 
         self.assertIn("reporter_control", source)
+        self.assertIn("configure_reporter", source)
         self.assertIn("reporter-start.sh", source)
+        self.assertIn("tiktok-srt-reporter", source)
+        self.assertIn("/etc/tiktok-srt-reporter.env", source)
+        self.assertIn("systemctl", source)
+        self.assertIn("REPORT_TOKEN", source)
+        self.assertIn("连接中控台 reporter", source)
         self.assertNotIn("monitor-start.sh", source)
         self.assertNotIn("python3.*monitor.py", source)
         self.assertNotIn("Web 监控", source)
@@ -96,6 +102,24 @@ class ManageConfigTests(unittest.TestCase):
         self.assertNotIn("git checkout", source)
         self.assertIn('"stash", "push"', source)
         self.assertIn('"--ff-only"', source)
+
+    def test_normalize_reporter_hub_input(self):
+        self.assertEqual(
+            self.manage.normalize_reporter_hub("23.238.118.221"),
+            "http://23.238.118.221:9988/api/report",
+        )
+        self.assertEqual(
+            self.manage.normalize_reporter_hub("live.example.com"),
+            "https://live.example.com/api/report",
+        )
+        self.assertEqual(
+            self.manage.normalize_reporter_hub("https://live.example.com"),
+            "https://live.example.com/api/report",
+        )
+        self.assertEqual(
+            self.manage.normalize_reporter_hub("http://23.238.118.221:9988/api/report"),
+            "http://23.238.118.221:9988/api/report",
+        )
 
     def test_render_config_preserves_extra_streams(self):
         parsed = self.manage.parse_yml()

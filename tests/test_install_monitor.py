@@ -19,12 +19,15 @@ class InstallMonitorScriptTests(unittest.TestCase):
         self.assertIn("MTX_API=\"${MTX_API:-http://127.0.0.1:9997/v3/paths/list}\"", script)
         self.assertIn("MTX_AUTH=\"${MTX_AUTH:-admin:monitor}\"", script)
         self.assertIn("REPORT_INTERVAL=\"${REPORT_INTERVAL:-5}\"", script)
+        self.assertIn("REPORT_TOKEN=\"${REPORT_TOKEN:-}\"", script)
+        self.assertIn("REPORT_TOKEN=$REPORT_TOKEN", script)
 
     def test_readme_documents_domain_reverse_proxy_usage(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
         self.assertIn("install-monitor.sh", readme)
         self.assertIn("HUB=https://你的域名/api/report", readme)
+        self.assertIn("REPORT_TOKEN=", readme)
         self.assertIn("tiktok-srt-reporter", readme)
 
 

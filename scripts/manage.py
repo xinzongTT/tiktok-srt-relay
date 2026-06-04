@@ -14,8 +14,11 @@ MEDIAMTX_FILE = BASE_DIR / "mediamtx.yml"
 TEMPLATE_FILE = BASE_DIR / "mediamtx.yml.template"
 ENV_FILE = BASE_DIR / ".env"
 DOCKER_COMPOSE_FILE = BASE_DIR / "docker-compose.yml"
+REPORTER_ENV_FILE = Path("/etc/tiktok-srt-reporter.env")
+REPORTER_SERVICE = "tiktok-srt-reporter"
 
 STREAM_NAME_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+IPV4_RE = re.compile(r"^\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?$")
 
 def load_env():
     env = {}
@@ -26,6 +29,64 @@ def load_env():
                 k, v = line.split("=", 1)
                 env[k.strip()] = v.strip()
     return env
+
+def normalize_reporter_hub(value):
+    hub = value.strip().rstrip("/")
+    if not hub:
+        return "http://23.238.118.221:9988/api/report"
+    if not hub.startswith(("http://", "https://")):
+        if IPV4_RE.match(hub):
+            if ":" not in hub:
+                hub = f"{hub}:9988"
+            hub = f"http://{hub}"
+        else:
+            hub = f"https://{hub}"
+    if not hub.endswith("/api/report"):
+        hub = hub + "/api/report"
+    return hub
+
+def write_reporter_env(hub, token, env):
+    public_host = env.get("PUBLIC_HOST", "?")
+    srt_port = env.get("SRT_PORT", "8890")
+    content = "\n".join(
+        [
+            f"HUB={hub}",
+            "MTX_API=http://127.0.0.1:9997/v3/paths/list",
+            "MTX_AUTH=admin:monitor",
+            f"NAME={env.get('REPORTER_NAME', 'relay-1')}",
+            f"SRT_HOST={public_host}",
+            f"SRT_PORT={srt_port}",
+            "REPORT_INTERVAL=5",
+            f"REPORT_TOKEN={token}",
+            "",
+        ]
+    )
+    REPORTER_ENV_FILE.write_text(content, encoding="utf-8")
+    os.chmod(REPORTER_ENV_FILE, 0o600)
+
+def ensure_reporter_service():
+    service_file = Path(f"/etc/systemd/system/{REPORTER_SERVICE}.service")
+    service = "\n".join(
+        [
+            "[Unit]",
+            "Description=TikTok SRT Relay Reporter",
+            "After=network.target docker.service",
+            "Wants=network.target",
+            "",
+            "[Service]",
+            "Type=simple",
+            f"WorkingDirectory={BASE_DIR}",
+            f"EnvironmentFile={REPORTER_ENV_FILE}",
+            f"ExecStart=/bin/bash {BASE_DIR}/scripts/reporter-start.sh",
+            "Restart=always",
+            "RestartSec=3",
+            "",
+            "[Install]",
+            "WantedBy=multi-user.target",
+            "",
+        ]
+    )
+    service_file.write_text(service, encoding="utf-8")
 
 def gen_password(length=24):
     chars = string.ascii_letters + string.digits
@@ -354,25 +415,43 @@ def update_scripts():
     except FileNotFoundError:
         print("未找到 git 命令。\n")
 
+def configure_reporter(env):
+    import subprocess
+    if getattr(os, "geteuid", lambda: 1)() != 0:
+        print("请用 sudo tkm 配置中控 reporter，这样才能写入 systemd 服务。\n")
+        return
+
+    raw_hub = input("  输入中控域名/IP/API 地址 [默认 http://23.238.118.221:9988/api/report]: ").strip()
+    hub = normalize_reporter_hub(raw_hub)
+    token = input("  REPORT_TOKEN（中控没设置就留空）: ").strip()
+    write_reporter_env(hub, token, env)
+    ensure_reporter_service()
+    subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
+    subprocess.run(["systemctl", "enable", REPORTER_SERVICE], capture_output=True)
+    result = subprocess.run(["systemctl", "restart", REPORTER_SERVICE], capture_output=True, text=True)
+    if result.returncode == 0:
+        print(f"reporter 已连接中控: {hub}\n")
+    else:
+        print(f"reporter 服务启动失败:\n{result.stderr}\n")
+
 def reporter_control(action):
     import subprocess
     script = BASE_DIR / "scripts" / "reporter-start.sh"
     if not script.exists():
         print("reporter-start.sh 不存在，请先 git pull 更新。\n")
         return
+    if action in ("start", "stop") and getattr(os, "geteuid", lambda: 1)() != 0:
+        print("请用 sudo tkm 启动或停止 reporter。\n")
+        return
     if action == "start":
-        cmd = "nohup bash scripts/reporter-start.sh > reporter.log 2>&1 &"
-        subprocess.run(["bash", "-lc", cmd], cwd=str(BASE_DIR))
-        print("reporter 已启动。\n")
+        result = subprocess.run(["systemctl", "start", REPORTER_SERVICE], capture_output=True, text=True)
+        print("reporter 已启动。\n" if result.returncode == 0 else f"reporter 启动失败:\n{result.stderr}\n")
     elif action == "stop":
-        subprocess.run(["pkill", "-f", "scripts/reporter.py"], capture_output=True)
-        print("reporter 已停止。\n")
+        result = subprocess.run(["systemctl", "stop", REPORTER_SERVICE], capture_output=True, text=True)
+        print("reporter 已停止。\n" if result.returncode == 0 else f"reporter 停止失败:\n{result.stderr}\n")
     elif action == "status":
-        r = subprocess.run(["pgrep", "-af", "scripts/reporter.py"], capture_output=True, text=True)
-        if r.stdout.strip():
-            print(f"reporter 运行中:\n{r.stdout}\n")
-        else:
-            print("reporter 未运行。\n")
+        r = subprocess.run(["systemctl", "status", REPORTER_SERVICE, "--no-pager"], capture_output=True, text=True)
+        print((r.stdout or r.stderr) + "\n")
 
 def main():
     os.chdir(BASE_DIR)
@@ -393,7 +472,7 @@ def main():
             print("  3. 删除一路推流")
             print("  4. 重启中转服务")
             print("  5. 更新脚本 (git pull)")
-            print("  6. 中控台 reporter 启动/停止/状态")
+            print("  6. 连接中控台 reporter")
             print("  7. 退出")
             print()
             choice = input("  请选择 [1-7]: ").strip()
@@ -457,14 +536,7 @@ def main():
 
             elif choice == "6":
                 print("\n  中控台 reporter")
-                print("  [s] 启动  [t] 停止  [v] 查看状态  [q] 返回")
-                subc = input("  > ").strip().lower()
-                if subc == "s":
-                    reporter_control("start")
-                elif subc == "t":
-                    reporter_control("stop")
-                elif subc == "v":
-                    reporter_control("status")
+                configure_reporter(env)
 
             elif choice == "7":
                 print("  再见。")

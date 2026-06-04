@@ -210,3 +210,61 @@ source ~/.bashrc
 - 建议只把 `OBS read URL` 发给需要拉流的机器
 - 如果怀疑密码泄露，修改 `.env` 后重新执行渲染和重启
 - 这个 VPS 只做中转，不建议在同机叠加额外高负载服务
+
+## 推流管理 `tkm`
+
+装完后可直接用 `tkm` 命令打开交互式管理菜单：
+
+```
+tkm
+```
+
+菜单功能：查看流列表、新增推流、删流、重启服务、更新代码。
+
+## 音乐通道（可选）
+
+用于美国端桌面音频同步回中国播放：
+
+```bash
+bash scripts/add-music-channel.sh      # 添加 music 通道
+bash scripts/music-push-us.ps1         # 美国端推送桌面音频
+bash scripts/music-play-cn.sh          # 中国端播放
+```
+
+## 接入中控台
+
+[中控台项目](https://github.com/xinzongTT/tiktok-live-jiankong) 可统一监控多个推流服务器。
+
+在 VPS 上启动本项目内置 reporter：
+
+```bash
+cd /opt/tiktok-srt-relay
+HUB=http://23.238.118.221:9988/api/report REPORTER_NAME=relay-1 nohup bash scripts/reporter-start.sh > reporter.log 2>&1 &
+```
+
+`reporter-start.sh` 会读取 `.env` 中的 `PUBLIC_HOST` 和 `SRT_PORT`，默认访问本机 MediaMTX API：`http://127.0.0.1:9997/v3/paths/list`。
+
+新增推流线路时请使用 `tkm` 或 `bash scripts/manage.sh`，脚本会同时写入 `paths` 和 `authInternalUsers.permissions`，避免新线路认证失败。
+
+## 项目结构
+
+```
+├── docker-compose.yml          # Docker 编排
+├── install.sh                  # 一键安装脚本
+├── mediamtx.yml.template       # MediaMTX 配置模板
+├── .env.example                # 环境变量模板
+├── .env                        # 实际配置（gitignore）
+├── scripts/
+│   ├── setup.sh                # 初始化安装
+│   ├── manage.py               # 交互式管理菜单
+│   ├── render-config.sh        # 配置渲染
+│   ├── status.sh               # 状态检查
+│   ├── add-music-channel.sh    # 添加音乐通道
+│   ├── music-push-us.ps1       # 美国端推送音乐
+│   ├── music-play-cn.sh        # 中国端播放音乐
+│   ├── reporter.py             # 中控台上报代理
+│   ├── reporter-start.sh       # reporter 启动脚本
+│   ├── test-publish.sh         # 本地测试推流
+│   └── test-read.sh            # 本地测试拉流
+└── repos/                      # 第三方参考项目
+```

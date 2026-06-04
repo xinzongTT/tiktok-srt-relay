@@ -21,8 +21,14 @@ authInternalUsers:
         path: "__MUSIC_PATH__"
       - action: read
         path: "__MUSIC_PATH__"
+  - user: admin
+    pass: monitor
+    ips: [127.0.0.1]
+    permissions:
+      - action: api
 
-api: false
+api: true
+apiAddress: 127.0.0.1:9997
 metrics: false
 pprof: false
 playback: false

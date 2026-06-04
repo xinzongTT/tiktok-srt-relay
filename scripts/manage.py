@@ -44,6 +44,9 @@ def init_from_template():
     content = content.replace("__SRT_PORT__", env.get("SRT_PORT", "8890"))
     content = content.replace("__SRT_PUBLISH_PASSPHRASE__", env.get("SRT_PUBLISH_PASSPHRASE", "CHANGE_ME"))
     content = content.replace("__SRT_READ_PASSPHRASE__", env.get("SRT_READ_PASSPHRASE", "CHANGE_ME"))
+    content = content.replace("__MUSIC_PATH__", env.get("MUSIC_PATH", "music"))
+    content = content.replace("__MUSIC_PUBLISH_PASSPHRASE__", env.get("MUSIC_PUBLISH_PASSPHRASE", "CHANGE_ME"))
+    content = content.replace("__MUSIC_READ_PASSPHRASE__", env.get("MUSIC_READ_PASSPHRASE", "CHANGE_ME"))
     MEDIAMTX_FILE.write_text(content, encoding="utf-8")
     return True
 
@@ -109,6 +112,62 @@ def render_yml(parsed):
             break
     return "\n".join(out) + "\n"
 
+def ensure_permission_lines(lines, path_name):
+    """Ensure the anonymous user can publish/read a path."""
+    publish_block = [f"      - action: publish", f"        path: {path_name}"]
+    read_block = [f"      - action: read", f"        path: {path_name}"]
+    text = "\n".join(lines)
+    if f"- action: publish\n        path: {path_name}" in text or f'- action: publish\n        path: "{path_name}"' in text:
+        publish_block = []
+    if f"- action: read\n        path: {path_name}" in text or f'- action: read\n        path: "{path_name}"' in text:
+        read_block = []
+    additions = publish_block + read_block
+    if not additions:
+        return lines
+
+    # Insert before the first non-permission line after the permissions block.
+    out = []
+    in_permissions = False
+    inserted = False
+    for line in lines:
+        if line.strip() == "permissions:":
+            in_permissions = True
+            out.append(line)
+            continue
+        if in_permissions and not inserted and line and not line.startswith("      ") and not line.startswith("        "):
+            out.extend(additions)
+            inserted = True
+            in_permissions = False
+        out.append(line)
+    if in_permissions and not inserted:
+        out.extend(additions)
+    return out
+
+def remove_permission_lines(lines, path_name):
+    """Remove publish/read permission blocks for a path."""
+    out = []
+    idx = 0
+    while idx < len(lines):
+        line = lines[idx]
+        if line.startswith("      - action:") and idx + 1 < len(lines):
+            next_line = lines[idx + 1].strip()
+            if next_line in (f"path: {path_name}", f'path: "{path_name}"'):
+                idx += 2
+                continue
+        out.append(line)
+        idx += 1
+    return out
+
+def sync_path_permission(path_name, add=True):
+    if not MEDIAMTX_FILE.exists():
+        return
+    lines = MEDIAMTX_FILE.read_text(encoding="utf-8").splitlines()
+    if add:
+        updated = ensure_permission_lines(lines, path_name)
+    else:
+        updated = remove_permission_lines(lines, path_name)
+    MEDIAMTX_FILE.write_text("\n".join(updated) + "\n", encoding="utf-8")
+
 def add_stream(path_name, parsed, env):
     if path_name in parsed["paths"]:
         return False, f"流 '{path_name}' 已存在。"
@@ -130,6 +189,7 @@ def add_stream(path_name, parsed, env):
 
     backup_file()
     MEDIAMTX_FILE.write_text(render_yml(parsed), encoding="utf-8")
+    sync_path_permission(path_name, add=True)
 
     public_host = env.get("PUBLIC_HOST", "YOUR_IP")
     srt_port = env.get("SRT_PORT", "8890")
@@ -148,6 +208,7 @@ def delete_stream(path_name, parsed):
     del parsed["paths"][path_name]
     backup_file()
     MEDIAMTX_FILE.write_text(render_yml(parsed), encoding="utf-8")
+    sync_path_permission(path_name, add=False)
     return True, f"流 '{path_name}' 已删除。"
 
 def list_streams(parsed, env):
